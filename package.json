@@ -1,6 +1,6 @@
 {
   "name": "baucis-swagger",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -11,7 +11,8 @@
   },
   "license": "MIT",
   "dependencies": {
-    "deco": "~0.3.2"
+    "deco": "~0.3.2",
+    "baucis": "~0.14.1"
   },
   "peerDependencies": {
     "mongoose": "~3.8.1"
@@ -22,7 +23,7 @@
     "request": "~2.21.0",
     "mongoose": "~3.8.1",
     "express": "~3.4.6",
-    "baucis": ">=0.14.0",
+    "baucis": ">=0.14.1",
     "async": "~0.2.9"
   },
   "readme": "ERROR: No README data found!",
