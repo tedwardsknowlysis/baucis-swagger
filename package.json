@@ -1,7 +1,7 @@
 {
   "name": "baucis-swagger",
-  "version": "0.2.1",
-  "description": "",
+  "version": "0.2.2",
+  "description": "Generate customizable swagger definitions for your Baucis REST API.",
   "main": "index.js",
   "scripts": {
     "test": "mocha --bail --timeout 5000"
@@ -26,7 +26,13 @@
     "baucis": ">=0.14.1",
     "async": "~0.2.9"
   },
-  "readme": "ERROR: No README data found!",
-  "_id": "baucis-swagger@0.1.0",
-  "_from": "baucis-swagger@"
+  "keywords": [
+    "baucis",
+    "REST",
+    "RESTful",
+    "API",
+    "plugin",
+    "swagger",
+    "documentation"
+  ]
 }
