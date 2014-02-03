@@ -1,6 +1,6 @@
 {
   "name": "baucis-swagger",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Generate customizable swagger definitions for your Baucis REST API.",
   "main": "index.js",
   "scripts": {
@@ -11,7 +11,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "deco": "~0.3.2",
+    "deco": "~0.9.2",
     "baucis": "~0.14.1"
   },
   "peerDependencies": {
