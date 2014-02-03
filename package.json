@@ -1,6 +1,6 @@
 {
   "name": "baucis-swagger",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Generate customizable swagger definitions for your Baucis REST API.",
   "homepage": "https://github.com/wprl/baucis-swagger",
   "repository": {
@@ -20,11 +20,11 @@
   },
   "license": "MIT",
   "dependencies": {
-    "deco": "~0.9.2",
-    "baucis": "~0.14.1"
+    "deco": "~0.9.2"
   },
   "peerDependencies": {
-    "mongoose": "~3.8.1"
+    "mongoose": "~3.8.1",
+    "baucis": ">0.14.1"
   },
   "devDependencies": {
     "mocha": "~1.8.2",
