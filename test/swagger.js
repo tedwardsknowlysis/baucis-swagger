@@ -99,6 +99,8 @@ describe('Swagger Resource Listing', function () {
 
       expect(response).to.have.property('statusCode', 200);
       expect(body.models.Fungus.properties).to.not.have.property('hyphenated-field-name');
+      expect(body.models.Fungus.properties).to.not.have.property('password');
+      expect(body.models.Fungus.properties).to.have.property('dork');
       done();
     });
   });

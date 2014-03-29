@@ -24,7 +24,7 @@ var fixture = module.exports = {
       related: { type: Schema.ObjectId, ref: 'vegetable' }
     });
 
-    var Fungus = new Schema({ 'hyphenated-field-name': String });
+    var Fungus = new Schema({ dork: Boolean, 'hyphenated-field-name': String, password: String });
     var Stuffing = new Schema({ bread: Boolean });
     var Goose = new Schema({ cooked: Boolean, stuffed: [Stuffing] });
 
@@ -42,7 +42,7 @@ var fixture = module.exports = {
     baucis.rest({
       singular: 'fungus',
       plural: 'fungi',
-      select: '-hyphenated-field-name'
+      select: '-hyphenated-field-name -password'
     });
 
     baucis.rest({

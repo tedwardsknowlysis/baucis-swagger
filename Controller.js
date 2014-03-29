@@ -49,7 +49,7 @@ var decorator = module.exports = function () {
       var path = schema.paths[name];
       var select = controller.get('select');
       var type = swaggerTypeFor(path.options.type);
-      var mode = select && (select.match(/\b[-]/g) ? 'exclusive' : 'inclusive');
+      var mode = (select && select.match(/(?:^|\s)[-]/g)) ? 'exclusive' : 'inclusive';
       var exclusiveNamePattern = new RegExp('\\B-' + name + '\\b', 'gi');
       var inclusiveNamePattern = new RegExp('(?:\\B[+]|\\b)' + name + '\\b', 'gi');
 
@@ -58,10 +58,10 @@ var decorator = module.exports = function () {
 
       // TODO is _id always included unless explicitly excluded?
 
-      // If it's excluded, skip this one
-      if (mode === 'exclusive' && select.match(exclusiveNamePattern)) return;
-      // If the mode is inclusive but the name is not present, skip this one
-      if (mode === 'inclusive' && name !== '_id' && !select.match(inclusiveNamePattern)) return;
+      // If it's excluded, skip this one.
+      if (select && mode === 'exclusive' && select.match(exclusiveNamePattern)) return;
+      // If the mode is inclusive but the name is not present, skip this one.
+      if (select && mode === 'inclusive' && name !== '_id' && !select.match(inclusiveNamePattern)) return;
 
       // Configure the property
       property.required = path.options.required || false; // TODO _id is required for PUT
