@@ -1,5 +1,6 @@
 // __Dependencies__
 var url = require('url');
+var deco = require('deco');
 
 // __Private Module Members__
 
@@ -48,14 +49,12 @@ var decorator = module.exports = function (options) {
 
     release.get('/api-docs' + route, function (request, response, next) {
       response.set('X-Powered-By', 'Baucis');
-      response.json({
+      response.json(deco.merge(controller.swagger, {
         apiVersion: options.release,
         swaggerVersion: '1.1',
         basePath: getBase(request, 2),
-        resourcePath: route,
-        apis: controller.swagger.apis,
-        models: controller.swagger.models
-      });
+        resourcePath: route
+      }));
     });
   });
 

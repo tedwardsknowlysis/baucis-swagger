@@ -39,6 +39,8 @@ var fixture = module.exports = {
       'allow comments': true
     });
 
+    fixture.controller.swagger.lambic = 'kriek';
+
     baucis.rest({
       singular: 'fungus',
       plural: 'fungi',

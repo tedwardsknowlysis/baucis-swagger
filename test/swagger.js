@@ -89,6 +89,19 @@ describe('Swagger Resource Listing', function () {
     });
   });
 
+  it("should copy all properties from the controller's swagger object", function (done) {
+    var options = {
+      url: 'http://127.0.0.1:8012/api/api-docs/vegetables',
+      json: true
+    };
+    request.get(options, function (err, response, body) {
+      if (err) return done(err);
+      expect(response).to.have.property('statusCode', 200);
+      expect(body).to.have.property('lambic', 'kriek');
+      done();
+    });
+  });
+
   it('should correctly set paths as private even if the path name contains hyphens', function (done) {
     var options = {
       url: 'http://127.0.0.1:8012/api/api-docs/fungi',
