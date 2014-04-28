@@ -45,7 +45,9 @@ var decorator = module.exports = function (options) {
 
   // Add routes for the controller's Swagger API definitions.
   options.controllers.forEach(function (controller) {
-    var route = url.resolve('/', controller.plural());
+    var route = controller.path();
+    
+    if (!controller.swagger) controller.generateSwagger();
 
     release.get('/api-docs' + route, function (request, response, next) {
       response.set('X-Powered-By', 'Baucis');

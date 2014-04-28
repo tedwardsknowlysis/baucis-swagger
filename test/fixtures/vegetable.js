@@ -9,48 +9,41 @@ var plugin = require('../..');
 // __Private Module Members__
 var app;
 var server;
+var Schema = mongoose.Schema;
+var Vegetable = new Schema({
+  name: { type: String, required: true },
+  diseases: { type: [ String ], select: false },
+  species: { type: String, default: 'n/a', select: false },
+  related: { type: Schema.ObjectId, ref: 'vegetable' }
+});
+var Fungus = new Schema({ 
+  dork: {type: Boolean, default: true },
+  'hyphenated-field-name': { type: String, default: 'blee' },
+  password: {type: String, default: '123' }
+});
+var Stuffing = new Schema({ 
+  bread: {type: Boolean, default: true }
+});
+var Goose = new Schema({ 
+  cooked: {type: Boolean, default: true },
+  stuffed: [Stuffing]
+});
+
+mongoose.model('vegetable', Vegetable);
+mongoose.model('fungus', Fungus);
+mongoose.model('goose', Goose);
 
 // __Module Definition__
 var fixture = module.exports = {
-  init: function(done) {
-    var Schema = mongoose.Schema;
-
+  init: function (done) {
     mongoose.connect(config.mongo.url);
 
-    var Vegetable = new Schema({
-      name: { type: String, required: true },
-      diseases: { type: [ String ], select: false },
-      species: { type: String, default: 'n/a', select: false },
-      related: { type: Schema.ObjectId, ref: 'vegetable' }
-    });
-
-    var Fungus = new Schema({ dork: Boolean, 'hyphenated-field-name': String, password: String });
-    var Stuffing = new Schema({ bread: Boolean });
-    var Goose = new Schema({ cooked: Boolean, stuffed: [Stuffing] });
-
-    if (!mongoose.models['vegetable']) mongoose.model('vegetable', Vegetable);
-    if (!mongoose.models['fungus']) mongoose.model('fungus', Fungus);
-    if (!mongoose.models['goose']) mongoose.model('goose', Goose);
-
-    fixture.controller = baucis.rest({
-      singular: 'vegetable',
-      relations: true,
-      'allow hints': true,
-      'allow comments': true
-    });
-
+    fixture.controller = baucis.rest('vegetable').hints(true).comments(true);
+    fixture.controller.generateSwagger();
     fixture.controller.swagger.lambic = 'kriek';
 
-    baucis.rest({
-      singular: 'fungus',
-      plural: 'fungi',
-      select: '-hyphenated-field-name -password'
-    });
-
-    baucis.rest({
-      singular: 'goose',
-      plural: 'geese'
-    });
+    baucis.rest('fungus').plural('fungi').select('-hyphenated-field-name -password');
+    baucis.rest('goose').plural('geese');
 
     app = express();
     app.use('/api', baucis());
@@ -61,7 +54,6 @@ var fixture = module.exports = {
     });
 
     server = app.listen(8012);
-
     done();
   },
   deinit: function(done) {

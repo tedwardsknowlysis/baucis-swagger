@@ -1,6 +1,6 @@
 {
   "name": "baucis-swagger",
-  "version": "0.3.0",
+  "version": "1.0.0-prerelease.1",
   "description": "Generate customizable swagger definitions for your Baucis REST API.",
   "homepage": "https://github.com/wprl/baucis-swagger",
   "repository": {
@@ -16,7 +16,9 @@
     "test": "mocha --bail --timeout 5000"
   },
   "author": {
-    "name": "William Riley-Land"
+    "name": "William Riley-Land",
+    "email": "william@kun.io",
+    "url": "http://kun.io/wprl"
   },
   "contributors": [
     {
@@ -27,17 +29,18 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "deco": "~0.9.2"
+    "deco": "~0.10.2",
+    "baucis": "^0.20.5"
   },
   "peerDependencies": {
     "mongoose": "~3.8.8",
-    "baucis": ">0.20.0"
+    "baucis": ">=0.20.0"
   },
   "devDependencies": {
     "mocha": "~1.8.2",
     "expect.js": "~0.2.0",
     "request": "~2.21.0",
-    "mongoose": "~3.8.1",
+    "mongoose": "~3.8.8",
     "express": "~3.5.1",
     "baucis": ">=0.20.0",
     "async": "~0.2.9"

@@ -280,26 +280,30 @@ var decorator = module.exports = function () {
   };
 
   // __Build the Definition__
-  var modelName = capitalize(controller.singular());
+  controller.generateSwagger = function () {
+    var modelName = capitalize(controller.singular());
 
-  controller.swagger = { apis: [], models: {} };
+    controller.swagger = { apis: [], models: {} };
 
-  // Model
-  controller.swagger.models[modelName] = generateModelDefinition();
+    // Model
+    controller.swagger.models[modelName] = generateModelDefinition();
 
-  // Instance route
-  controller.swagger.apis.push({
-    path: '/' + controller.plural() + '/{id}',
-    description: 'Operations about a given ' + controller.singular(),
-    operations: generateOperations(false)
-  });
+    // Instance route
+    controller.swagger.apis.push({
+      path: '/' + controller.plural() + '/{id}',
+      description: 'Operations about a given ' + controller.singular(),
+      operations: generateOperations(false)
+    });
 
-  // Collection route
-  controller.swagger.apis.push({
-    path: '/' + controller.plural(),
-    description: 'Operations about ' + controller.plural(),
-    operations: generateOperations(true)
-  });
+    // Collection route
+    controller.swagger.apis.push({
+      path: '/' + controller.plural(),
+      description: 'Operations about ' + controller.plural(),
+      operations: generateOperations(true)
+    });
+
+    return controller;
+  };
 
   return controller;
 };
