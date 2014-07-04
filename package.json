@@ -29,12 +29,12 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "deco": "~0.10.2",
-    "baucis": "^0.20.5"
+    "deco": "^0.12.0",
+    "baucis": "^1.0.0-candidate.10"
   },
   "peerDependencies": {
     "mongoose": "~3.8.8",
-    "baucis": ">=0.20.0"
+    "baucis": "^1.0.0-candidate.10"
   },
   "devDependencies": {
     "mocha": "~1.8.2",
