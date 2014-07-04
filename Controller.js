@@ -31,7 +31,7 @@ function capitalize (s) {
 }
 
 // __Module Definition__
-var decorator = module.exports = function () {
+var decorator = module.exports = function (options, protect) {
   var controller = this;
 
   // __Private Instance Members__
@@ -39,9 +39,9 @@ var decorator = module.exports = function () {
   // A method used to generate a Swagger model definition for a controller
   function generateModelDefinition () {
     var definition = {};
-    var schema = controller.schema();
+    var schema = controller.model().schema;
 
-    definition.id = capitalize(controller.singular());
+    definition.id = capitalize(controller.model().singular());
     definition.properties = {};
 
     Object.keys(schema.paths).forEach(function (name) {
@@ -107,7 +107,7 @@ var decorator = module.exports = function () {
       parameters.push({
         paramType: 'path',
         name: 'id',
-        description: 'The ID of a ' + controller.singular(),
+        description: 'The ID of a ' + controller.model().singular(),
         dataType: 'string',
         required: true,
         allowMultiple: false
@@ -196,7 +196,7 @@ var decorator = module.exports = function () {
         paramType: 'body',
         name: 'document',
         description: 'Create a document by sending the paths to be updated in the request body.',
-        dataType: capitalize(controller.singular()),
+        dataType: capitalize(controller.model().singular()),
         required: true,
         allowMultiple: false
       });
@@ -207,7 +207,7 @@ var decorator = module.exports = function () {
         paramType: 'body',
         name: 'document',
         description: 'Update a document by sending the paths to be updated in the request body.',
-        dataType: capitalize(controller.singular()),
+        dataType: capitalize(controller.model().singular()),
         required: true,
         allowMultiple: false
       });
@@ -225,7 +225,7 @@ var decorator = module.exports = function () {
     if (!plural) {
       errorResponses.push({
         code: 404,
-        reason: 'No ' + controller.singular() + ' was found with that ID.'
+        reason: 'No ' + controller.model().singular() + ' was found with that ID.'
       });
     }
 
@@ -233,7 +233,7 @@ var decorator = module.exports = function () {
     if (plural) {
       errorResponses.push({
         code: 404,
-        reason: 'No ' + controller.plural() + ' matched that query.'
+        reason: 'No ' + controller.model().plural() + ' matched that query.'
       });
     }
 
@@ -249,8 +249,8 @@ var decorator = module.exports = function () {
 
     controller.methods().forEach(function (verb) {
       var operation = {};
-      var titlePlural = capitalize(controller.plural());
-      var titleSingular = capitalize(controller.singular());
+      var titlePlural = capitalize(controller.model().plural());
+      var titleSingular = capitalize(controller.model().singular());
 
       // Don't do head, post/put for single/plural
       if (verb === 'head') return;
@@ -267,8 +267,8 @@ var decorator = module.exports = function () {
 
       operation.responseClass = titleSingular; // TODO sometimes an array!
 
-      if (plural) operation.summary = capitalize(verb) + ' some ' + controller.plural();
-      else operation.summary = capitalize(verb) + ' a ' + controller.singular() + ' by its unique ID';
+      if (plural) operation.summary = capitalize(verb) + ' some ' + controller.model().plural();
+      else operation.summary = capitalize(verb) + ' a ' + controller.model().singular() + ' by its unique ID';
 
       operation.parameters = generateParameters(verb, plural);
       operation.errorResponses = generateErrorResponses(plural);
@@ -281,7 +281,7 @@ var decorator = module.exports = function () {
 
   // __Build the Definition__
   controller.generateSwagger = function () {
-    var modelName = capitalize(controller.singular());
+    var modelName = capitalize(controller.model().singular());
 
     controller.swagger = { apis: [], models: {} };
 
@@ -290,15 +290,15 @@ var decorator = module.exports = function () {
 
     // Instance route
     controller.swagger.apis.push({
-      path: '/' + controller.plural() + '/{id}',
-      description: 'Operations about a given ' + controller.singular(),
+      path: '/' + controller.model().plural() + '/{id}',
+      description: 'Operations about a given ' + controller.model().singular(),
       operations: generateOperations(false)
     });
 
     // Collection route
     controller.swagger.apis.push({
-      path: '/' + controller.plural(),
-      description: 'Operations about ' + controller.plural(),
+      path: '/' + controller.model().plural(),
+      description: 'Operations about ' + controller.model().plural(),
       operations: generateOperations(true)
     });
 
