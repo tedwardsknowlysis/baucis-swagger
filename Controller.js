@@ -305,5 +305,5 @@ var decorator = module.exports = function (options, protect) {
     return controller;
   };
 
-  return controller;
+  return controller.generateSwagger();
 };
