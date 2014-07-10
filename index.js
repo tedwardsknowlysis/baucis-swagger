@@ -42,9 +42,7 @@ Swagger.prototype.finalize = function() {
 		// Add routes for the controller's Swagger API definitions.
 		var route = controller.model().modelName;
 	 
-		if (!controller.swagger) {
-			controller.generateSwagger();
-		}
+		controller.finalize();
 
 		app.use('/' + route, function (request, response, next) {
 			response.set('X-Powered-By', 'Baucis');
@@ -70,5 +68,4 @@ Swagger.prototype.finalize = function() {
 	return app;
 };
 
-	
 module.exports = Swagger;

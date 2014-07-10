@@ -99,8 +99,19 @@ var decorator = module.exports = function (options, protect) {
   };
 
   // Generate parameter list for operations
-  function generateParameters (verb, plural) {
+  function generateParameters (verb, plural, subPath) {
     var parameters = [];
+
+	 if (subPath) {
+		parameters.push({
+        paramType: 'path',
+        name: controller.model().singular() + 'Id',
+        description: 'The ID of a ' + controller.model().singular(),
+        dataType: 'string',
+        required: true,
+        allowMultiple: false
+      });
+	 }
 
     // Parameters available for singular routes
     if (!plural) {
@@ -214,7 +225,7 @@ var decorator = module.exports = function (options, protect) {
     }
 
     return parameters;
-  };
+  }
 
   function generateErrorResponses (plural) {
     var errorResponses = [];
@@ -241,16 +252,17 @@ var decorator = module.exports = function (options, protect) {
     // None.
 
     return errorResponses;
-  };
+  }
 
   // Generate a list of a controller's operations
-  function generateOperations (plural) {
+  function generateOperations (c, plural, subPath) {
+	 var model = c.model();
     var operations = [];
 
-    controller.methods().forEach(function (verb) {
+    c.methods().forEach(function (verb) {
       var operation = {};
-      var titlePlural = capitalize(controller.model().plural());
-      var titleSingular = capitalize(controller.model().singular());
+      var titlePlural = capitalize(model.plural());
+      var titleSingular = capitalize(model.singular());
 
       // Don't do head, post/put for single/plural
       if (verb === 'head') return;
@@ -262,48 +274,79 @@ var decorator = module.exports = function (options, protect) {
 
       operation.httpMethod = verb.toUpperCase();
 
-      if (plural) operation.nickname = verb + titlePlural;
-      else operation.nickname = verb + titleSingular + 'ById';
+      if (subPath) {
+			if (plural) {
+				operation.nickname = verb + titlePlural + 'By' + model.singular();
+			} else {
+				operation.nickname = verb + titleSingular + 'ByIdBy' + model.singular();
+			}
+		} else {
+			if (plural) {
+				operation.nickname = verb + titlePlural;
+			} else {
+				operation.nickname = verb + titleSingular + 'ById';
+			}
+		}
 
       operation.responseClass = titleSingular; // TODO sometimes an array!
 
-      if (plural) operation.summary = capitalize(verb) + ' some ' + controller.model().plural();
-      else operation.summary = capitalize(verb) + ' a ' + controller.model().singular() + ' by its unique ID';
+      if (plural) operation.summary = capitalize(verb) + ' some ' + model.plural();
+      else operation.summary = capitalize(verb) + ' a ' + model.singular() + ' by its unique ID';
 
-      operation.parameters = generateParameters(verb, plural);
-      operation.errorResponses = generateErrorResponses(plural);
+      operation.parameters = generateParameters(verb, plural, subPath);
+      operation.errorResponses = generateErrorResponses(plural, subPath);
 
       operations.push(operation);
     });
 
     return operations;
-  };
+  }
 
-  // __Build the Definition__
+	  // __Build the Definition__
   controller.generateSwagger = function () {
-    var modelName = capitalize(controller.model().singular());
+		controller.swagger = { apis: [], models: {} };
 
-    controller.swagger = { apis: [], models: {} };
+		controller.swagger.addPath = function(subcontrollers) {
+			subcontrollers.forEach(function(subcontroller){
+				var model = subcontroller.model();
+				controller.swagger.apis.push({
+					path: '/' + controller.model().plural() + "/{" + controller.model().singular() + "Id}/" + model.plural(),
+					description: "Operations about " + model.plural() + " of a " + controller.model().singular(),
+					operations: generateOperations(subcontroller, true, true)
+				});
+				controller.swagger.apis.push({
+					path: '/' + controller.model().plural() + "/{" + controller.model().singular() + "Id}/" + model.plural() + "/{Id}",
+					description: "Operations about " + model.plural() + " of a " + controller.model().singular(),
+					operations: generateOperations(subcontroller, false, true)
+				});
+			});
+		};	 
 
-    // Model
-    controller.swagger.models[modelName] = generateModelDefinition();
+		controller.finalize = function () {
+			var modelName = capitalize(controller.model().singular());
+			//
+			// Model
+			controller.swagger.models[modelName] = generateModelDefinition();
 
-    // Instance route
-    controller.swagger.apis.push({
-      path: '/' + controller.model().plural() + '/{id}',
-      description: 'Operations about a given ' + controller.model().singular(),
-      operations: generateOperations(false)
-    });
+			// Instance route
+			controller.swagger.apis.unshift({
+				path: '/' + controller.model().plural() + '/{id}',
+				description: 'Operations about a given ' + controller.model().singular(),
+				operations: generateOperations(controller, false)
+			});
 
-    // Collection route
-    controller.swagger.apis.push({
-      path: '/' + controller.model().plural(),
-      description: 'Operations about ' + controller.model().plural(),
-      operations: generateOperations(true)
-    });
+			// Collection route
+			controller.swagger.apis.unshift({
+				path: '/' + controller.model().plural(),
+				description: 'Operations about ' + controller.model().plural(),
+				operations: generateOperations(controller, true)
+			});
+			
+			return controller;
+		};
 
-    return controller;
-  };
+		return controller;
+	};
 
   return controller.generateSwagger();
 };
