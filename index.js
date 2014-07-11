@@ -26,7 +26,7 @@ function generateResourceListing (options) {
     swaggerVersion: '1.1',
     basePath: options.basePath,
     apis: plurals.map(function (plural) {
-      return { path: '/api-docs/' + plural, description: 'Operations about ' + plural + '.' };
+      return { path: '/' + plural, description: 'Operations about ' + plural + '.' };
     })
   };
 
@@ -61,7 +61,7 @@ Swagger.prototype.finalize = function() {
 		response.json(generateResourceListing({
 			version: "0.0.1",
 			controllers: controllers,
-			basePath: getBase(request, 1)
+			basePath: getBase(request, 0)
 		}));
 	});
 
