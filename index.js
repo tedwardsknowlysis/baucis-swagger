@@ -4,8 +4,11 @@ var deco = require("deco");
 
 var Swagger = function(baucis) {
 	this.__baucis = baucis;
+	var controllers = this.__controllers = [];
 	var decorators = deco.require(__dirname, ["Controller"]).hash;
-	baucis.Controller.decorators(decorators.Controller);
+	baucis.Controller.decorators([decorators.Controller, function () {
+		controllers.push(this);
+	}]);
 };
 
 // Figure out the basePath for Swagger API definition
@@ -34,7 +37,7 @@ function generateResourceListing (options) {
 }
 
 Swagger.prototype.finalize = function() {
-	var controllers = this.__baucis.controllers(); 
+	var controllers = this.__controllers;
 
 	var app = express.Router();	
 
