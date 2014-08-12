@@ -36,18 +36,16 @@ function generateResourceListing (options) {
   return listing;
 }
 
-Swagger.prototype.finalize = function() {
+Swagger.prototype.finalize = function(app) {
 	var controllers = this.__controllers;
-
-	var app = express.Router();	
 
 	controllers.forEach(function(controller) {
 		// Add routes for the controller's Swagger API definitions.
-		var route = controller.model().modelName;
+		var route = controller.model().plural();
 	 
 		controller.finalize();
 
-		app.use('/' + route, function (request, response, next) {
+		app.use('/api/api-docs/' + route, function (request, response, next) {
 			response.set('X-Powered-By', 'Baucis');
 			response.json(deco.merge(controller.swagger, {
 				apiVersion: controller.versions(),
@@ -59,7 +57,7 @@ Swagger.prototype.finalize = function() {
 	});
 
 	// Activate Swagger resource listing.
-	app.use("/", function (request, response, next) {
+	app.use("/api/api-docs", function (request, response, next) {
 		response.set('X-Powered-By', 'Baucis');
 		response.json(generateResourceListing({
 			version: "0.0.1",
