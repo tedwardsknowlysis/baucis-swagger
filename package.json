@@ -1,11 +1,11 @@
 {
   "name": "baucis-swagger",
-  "version": "1.0.0-prerelease.2",
+  "version": "1.0.0-prerelease.1",
   "description": "Generate customizable swagger definitions for your Baucis REST API.",
   "homepage": "https://github.com/wprl/baucis-swagger",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tedwardsknowlysis/baucis-swagger.git"
+    "url": "https://github.com/wprl/baucis-swagger.git"
   },
   "bugs": {
     "url": "https://github.com/wprl/baucis-swagger/issues/new",
