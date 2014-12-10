@@ -2,8 +2,9 @@ var express = require("express");
 var url = require("url");
 var deco = require("deco");
 
-var Swagger = function(baucis) {
+var Swagger = function(baucis, path) {
 	this.__baucis = baucis;
+	this.basePath = path ? path : '/api';
 	var controllers = this.__controllers = [];
 	var decorators = deco.require(__dirname, ["Controller"]).hash;
 	baucis.Controller.decorators([decorators.Controller, function () {
@@ -45,7 +46,7 @@ Swagger.prototype.finalize = function(app) {
 	 
 		controller.finalize();
 
-		app.use('/api/api-docs/' + route, function (request, response, next) {
+		app.use(this.basePath + '/api-docs/' + route, function (request, response, next) {
 			response.set('X-Powered-By', 'Baucis');
 			response.json(deco.merge(controller.swagger, {
 				apiVersion: controller.versions(),
@@ -57,7 +58,7 @@ Swagger.prototype.finalize = function(app) {
 	});
 
 	// Activate Swagger resource listing.
-	app.use("/api/api-docs", function (request, response, next) {
+	app.use(this.basePath + '/api-docs', function (request, response, next) {
 		response.set('X-Powered-By', 'Baucis');
 		response.json(generateResourceListing({
 			version: "0.0.1",
