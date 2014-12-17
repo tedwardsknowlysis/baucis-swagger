@@ -1,179 +1,439 @@
-/* 
- server.js
- mongodb-rest
+// This is a Controller mixin to add methods for generating Swagger data.
 
- Created by Tom de Grunt on 2010-10-03.
- Copyright (c) 2010 Tom de Grunt.
- This file is part of mongodb-rest.
- */
-
-//var fs = require("fs");
-//var  util = require('util');
-var express = require('express');
-var baucis = require('baucis');
-var Swagger = require('baucis-swagger');
-var router = express.Router();
-var path = require('path');
-var config = require('config');
+// __Dependencies__
 var mongoose = require('mongoose');
-var mongodb = config.Main.mongourl;
-var log = require('./logger');
-var bodyParser = require('body-parser');
-var cookieParser = require('cookie-parser');
 
-mongoose.connect(mongodb);
+// __Private Members__
 
-var app = express();
-
-//app.use(logger('dev'));
-app.use(bodyParser.json());
-//app.use(bodyParser.urlencoded());
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
-
-//app.use(require('body-parser')());
-
-app.all('*', function(req, res, next) {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'PUT, GET, POST, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Token');
-
-  if (req.method === 'OPTIONS') {
-//        console.log('!OPTIONS');
-    var headers = {};
-    // IE8 does not allow domains to be specified, just the *
-    // headers["Access-Control-Allow-Origin"] = req.headers.origin;
-    headers["Access-Control-Allow-Origin"] = "*";
-    headers["Access-Control-Allow-Methods"] = "POST, GET, PUT, DELETE, OPTIONS";
-    headers["Access-Control-Allow-Credentials"] = false;
-    headers["Access-Control-Max-Age"] = '86400'; // 24 hours
-    headers["Access-Control-Allow-Headers"] = "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Token";
-    res.writeHead(200, headers);
-    res.end();
-  } else {
-    next();
-  }
-});
-
-//if (config.accessControl){
-//	var accesscontrol = require('./lib/accesscontrol');
-//	app.use(accesscontrol.handle);
-//}
-
-//Setup Models
-var appointment         = require('./models/appointment');
-var user                =   require('./models/user');
-var adherence           =   require('./models/adherence');
-var regimen             =   require('./models/regimen');
-var prescription        =   require('./models/prescription');
-var regimenPrescription =   require('./models/regimenPrescription');
-var level               =   require('./models/level');
-var levelType           =   require('./models/levelType');
-var diagnosis           =   require('./models/diagnosis');
-var provider            =   require('./models/provider');
-var medDetail           =   require('./models/meddetail');
-var reminder            =   require('./models/reminder');
-
-var simpleAuth = require('./lib/simpleAuth');
-
-if(config.Main.sessionTimeOut){
-  simpleAuth.setTimeOut(config.Main.sessionTimeOut)
+// Convert a Mongoose type into a Swagger type
+function swaggerTypeFor (type) {
+  if (!type) return null;
+  if (type === String) return 'string';
+  if (type === Number) return 'double';
+  if (type === Date) return 'Date';
+  if (type === Boolean) return 'boolean';
+  if (type === mongoose.Schema.Types.ObjectId) return 'string';
+  if (type === mongoose.Schema.Types.Oid) return 'string';
+  if (type === mongoose.Schema.Types.Array) return 'Array';
+  if (Array.isArray(type) || type.name === "Array") return 'Array';
+  if (type === Object) return null;
+  if (type instanceof Object) return null;
+  if (type === mongoose.Schema.Types.Mixed) return null;
+  if (type === mongoose.Schema.Types.Buffer) return null;
+  throw new Error('Unrecognized type: ' + type);
 }
 
-//require('./lib/rest')(app, config);
-var dbroute = require("./routes/db");
+// Check if the swagger type should be shown in this api...
+function swaggerShowTypeFor(type) {
+  if (!type) return null;
+  if (   type === String
+      || type === Number
+      || type === Date
+      || type === Boolean
+      || type === mongoose.Schema.Types.ObjectId
+      || type === mongoose.Schema.Types.Oid
+      || type === mongoose.Schema.Types.Array)
+    return isVisible(type);
 
-var swagger = new Swagger(baucis);
+  if (Array.isArray(type) || type.name === "Array")
+    return isVisible(type[0]);
 
-baucis.rest(appointment.model);
-var userController = baucis.rest(user.model);
-baucis.rest(adherence.model);
-baucis.rest(regimen.model);
-baucis.rest(prescription.model);
-baucis.rest(regimenPrescription.model);
-baucis.rest(level.model);
-baucis.rest(levelType.model);
-baucis.rest(diagnosis.model);
-baucis.rest(provider.model);
-baucis.rest(medDetail.model);
-baucis.rest(reminder.model);
+  if (  type === Object
+      ||  type instanceof Object
+      ||  type === mongoose.Schema.Types.Mixed
+      ||  type === mongoose.Schema.Types.Buffer)
+    return isVisible(type);
 
-swagger.finalize(app, '/swapi');
-app.use('/swapi', baucis());
+  return true;
+}
 
-app.use('/db', dbroute);
-//app.use('/api', simpleAuth.ensureAuthentication);
-app.use('/appointments',require("./routes/appointments"));
-app.use('/api/appointments',require("./routes/appointments"));
-app.use('/api/regimens',require("./routes/regimens"));
-app.use('/users',require("./routes/users"));
-app.use('/api/users',require("./routes/users"));
-app.use('/providers',require("./routes/providers"));
-app.use('/api/providers',require("./routes/providers"));
-app.use('/diagnoses',require("./routes/diagnoses"));
-app.use('/api/diagnoses',require("./routes/diagnoses"));
-app.use('/meddetails',require("./routes/meddetails"));
-app.use('/api/meddetails',require("./routes/meddetails"));
-app.use('/api/prescriptions',require("./routes/prescriptions"));
-app.use('/api/regimenPrescriptions',require("./routes/regimenPrescriptions"));
-app.use('/api/adherences',require("./routes/adherences"));
-app.use('/levelTypes',require("./routes/levelTypes"));
-app.use('/api/levelTypes',require("./routes/levelTypes"));
-app.use('/api/levels',require("./routes/levels"));
-app.use('/api/reminders',require("./routes/reminders"));
+// Check if the provided object should be part of the external schema...
+function isVisible(object) {
+  if (object != undefined && object != null) {
+    if (object.visible != undefined) {
+      return object.visible;
+    }
+  }
+  return true;
+}
 
-app.use('/schema',require("./routes/schema"));
-app.use('/senchaschema',require("./routes/senchaschema"));
-//used to initialize the db..etc
-app.use('/debug',require("./routes/debug"));
-app.use('/', require("./routes/general"));
+// A method for capitalizing the first letter of a string
+function capitalize (s) {
+  if (!s) return s;
+  if (s.length === 1) return s.toUpperCase();
+  return s[0].toUpperCase() + s.substring(1);
+}
 
-app.post('/authorize',simpleAuth.authenticate);
+// __Module Definition__
+var decorator = module.exports = function (options, protect) {
+  var controller = this;
 
+  // __Private Instance Members__
 
-//This route is only setup to test the authentication piece
-app.get('/api/test', function(req, res){
-  res.json({ 'somedata' : 'Matt', content: 'My Content'});
-});
+  // A method used to generate a Swagger model definition for a controller
+  function generateModelDefinition () {
+    var definition = {};
+    var schema = controller.model().schema;
 
-/// catch 404 and forwarding to error handler
-app.use(function(req, res, next) {
-  var err = new Error('Not Found');
-  err.status = 404;
-  next(err);
-});
+    definition.id = capitalize(controller.model().singular());
+    definition.properties = {};
 
-router.get('/schema/:modelName', function(req, res, next) {
-  var modelName = req.param('modelName')
-  var modelInfo = {
-    model: mongoose.model(modelName).modelName,
-    schema: mongoose.model(modelName).schema
-  };
-  res.send(JSON.stringify(modelInfo));
-});
+    Object.keys(schema.paths).forEach(function (name) {
+      var property = {};
+      var path = schema.paths[name];
+      var select = controller.select();
+      var type = swaggerTypeFor(path.options.type);
+      var mode = (select && select.match(/(?:^|\s)[-]/g)) ? 'exclusive' : 'inclusive';
+      var exclusiveNamePattern = new RegExp('\\B-' + name + '\\b', 'gi');
+      var inclusiveNamePattern = new RegExp('(?:\\B[+]|\\b)' + name + '\\b', 'gi');
 
-/// error handlers
+      // Keep deselected paths private
+      if (path.selected === false) return;
 
-// production error handler
-// no stacktraces leaked to user
-app.use(function(err, req, res, next) {
-  res.status(err.status || 500);
-  res.send({
-    message: err.message,
-    error: {}
-  });
-});
+      // TODO is _id always included unless explicitly excluded?
 
+      // If it's excluded, skip this one.
+      if (select && mode === 'exclusive' && select.match(exclusiveNamePattern)) return;
+      // If the mode is inclusive but the name is not present, skip this one.
+      if (select && mode === 'inclusive' && name !== '_id' && !select.match(inclusiveNamePattern)) return;
 
-if (app.get('env') === 'development') {
-  app.use(function(err, req, res, next) {
-    res.status(err.status || 500);
-    res.send({
-      message: err.message,
-      error: err
+      // Configure the property
+      property.required = path.options.required || false; // TODO _id is required for PUT
+      property.type = type;
+
+      // Set enum values if applicable
+      if (path.enumValues && path.enumValues.length > 0) {
+        property.allowableValues = { valueType: 'LIST', values: path.enumValues };
+      }
+
+      // Set allowable values range if min or max is present
+      if (!isNaN(path.options.min) || !isNaN(path.options.max)) {
+        property.allowableValues = { valueType: 'RANGE' };
+      }
+
+      if (!isNaN(path.options.min)) {
+        property.allowableValues.min = path.options.min;
+      }
+
+      if (!isNaN(path.options.max)) {
+        property.allowableValues.max = path.options.max;
+      }
+
+      if (!property.type) {
+        console.log('Warning: That field type is not yet supported in baucis Swagger definitions, using "string."');
+        console.log('Path name: %s.%s', definition.id, name);
+        console.log('Mongoose type: %s', path.options.type);
+        property.type = 'string';
+      }
+
+      if (swaggerShowTypeFor(path.options.type)) {
+        definition.properties[name] = property;
+      }
     });
 
-  });
-}
+    Object.keys(schema.virtuals).forEach(function (name) {
+      var property = {};
+      var path = schema.virtuals[name];
+      var select = controller.select();
+      var type = "string"; // Virtual types have no declared types 
+      var mode = (select && select.match(/(?:^|\s)[-]/g)) ? 'exclusive' : 'inclusive';
+      var exclusiveNamePattern = new RegExp('\\B-' + name + '\\b', 'gi');
+      var inclusiveNamePattern = new RegExp('(?:\\B[+]|\\b)' + name + '\\b', 'gi');
 
-module.exports = app;
+      // Keep deselected paths private
+      if (path.selected === false) return;
+
+      // TODO is _id always included unless explicitly excluded?
+
+      // If it's excluded, skip this one.
+      if (select && mode === 'exclusive' && select.match(exclusiveNamePattern)) return;
+      // If the mode is inclusive but the name is not present, skip this one.
+      if (select && mode === 'inclusive' && name !== '_id' && !select.match(inclusiveNamePattern)) return;
+
+      // Configure the property
+      property.required = path.options.required || false; // TODO _id is required for PUT
+      property.type = type;
+
+      // Set enum values if applicable
+      if (path.enumValues && path.enumValues.length > 0) {
+        property.allowableValues = { valueType: 'LIST', values: path.enumValues };
+      }
+
+      // Set allowable values range if min or max is present
+      if (!isNaN(path.options.min) || !isNaN(path.options.max)) {
+        property.allowableValues = { valueType: 'RANGE' };
+      }
+
+      if (!isNaN(path.options.min)) {
+        property.allowableValues.min = path.options.min;
+      }
+
+      if (!isNaN(path.options.max)) {
+        property.allowableValues.max = path.options.max;
+      }
+
+      if (!property.type) {
+        console.log('Warning: That field type is not yet supported in baucis Swagger definitions, using "string."');
+        console.log('Path name: %s.%s', definition.id, name);
+        console.log('Mongoose type: %s', path.options.type);
+        property.type = 'string';
+      }
+
+      definition.properties[name] = property;
+    });
+
+    return definition;
+  };
+
+  // Generate parameter list for operations
+  function generateParameters (verb, plural, subPath) {
+    var parameters = [];
+
+	 if (subPath) {
+		parameters.push({
+        paramType: 'path',
+        name: controller.model().singular() + 'Id',
+        description: 'The ID of a ' + controller.model().singular(),
+        dataType: 'string',
+        required: true,
+        allowMultiple: false
+      });
+	 }
+
+    // Parameters available for singular routes
+    if (!plural) {
+      parameters.push({
+        paramType: 'path',
+        name: 'id',
+        description: 'The ID of a ' + controller.model().singular(),
+        dataType: 'string',
+        required: true,
+        allowMultiple: false
+      });
+
+      parameters.push({
+        paramType: 'header',
+        name: 'X-Baucis-Update-Operator',
+        description: '**BYPASSES VALIDATION** May be used with PUT to update the document using $push, $pull, or $set.',
+        dataType: 'string',
+        required: false,
+        allowMultiple: false
+      });
+    }
+
+    // Parameters available for plural routes
+    if (plural) {
+      parameters.push({
+        paramType: 'query',
+        name: 'skip',
+        description: 'How many documents to skip.',
+        dataType: 'int',
+        required: false,
+        allowMultiple: false
+      });
+
+      parameters.push({
+        paramType: 'query',
+        name: 'limit',
+        description: 'The maximum number of documents to send.',
+        dataType: 'int',
+        required: false,
+        allowMultiple: false
+      });
+
+      parameters.push({
+        paramType: 'query',
+        name: 'count',
+        description: 'Set to true to return count instead of documents.',
+        dataType: 'boolean',
+        required: false,
+        allowMultiple: false
+      });
+
+      parameters.push({
+        paramType: 'query',
+        name: 'conditions',
+        description: 'Set the conditions used to find or remove the document(s).',
+        dataType: 'string',
+        required: false,
+        allowMultiple: false
+      });
+
+      parameters.push({
+        paramType: 'query',
+        name: 'sort',
+        description: 'Set the fields by which to sort.',
+        dataType: 'string',
+        required: false,
+        allowMultiple: false
+      });
+    }
+
+    // Parameters available for singular and plural routes
+    parameters.push({
+      paramType: 'query',
+      name: 'select',
+      description: 'Select which paths will be returned by the query.',
+      dataType: 'string',
+      required: false,
+      allowMultiple: false
+    });
+
+    parameters.push({
+      paramType: 'query',
+      name: 'populate',
+      description: 'Specify which paths to populate.',
+      dataType: 'string',
+      required: false,
+      allowMultiple: false
+    });
+
+    if (verb === 'post') {
+      // TODO post body can be single or array
+      parameters.push({
+        paramType: 'body',
+        name: 'document',
+        description: 'Create a document by sending the paths to be updated in the request body.',
+        dataType: capitalize(controller.model().singular()),
+        required: true,
+        allowMultiple: false
+      });
+    }
+
+    if (verb === 'put') {
+      parameters.push({
+        paramType: 'body',
+        name: 'document',
+        description: 'Update a document by sending the paths to be updated in the request body.',
+        dataType: capitalize(controller.model().singular()),
+        required: true,
+        allowMultiple: false
+      });
+    }
+
+    return parameters;
+  }
+
+  function generateErrorResponses (plural) {
+    var errorResponses = [];
+
+    // TODO other errors (400, 403, etc. )
+
+    // Error rosponses for singular operations
+    if (!plural) {
+      errorResponses.push({
+        code: 404,
+        reason: 'No ' + controller.model().singular() + ' was found with that ID.'
+      });
+    }
+
+    // Error rosponses for plural operations
+    if (plural) {
+      errorResponses.push({
+        code: 404,
+        reason: 'No ' + controller.model().plural() + ' matched that query.'
+      });
+    }
+
+    // Error rosponses for both singular and plural operations
+    // None.
+
+    return errorResponses;
+  }
+
+  // Generate a list of a controller's operations
+  function generateOperations (c, plural, subPath) {
+	 var model = c.model();
+    var operations = [];
+
+    c.methods().forEach(function (verb) {
+      var operation = {};
+      var titlePlural = capitalize(model.plural());
+      var titleSingular = capitalize(model.singular());
+
+      // Don't do head, post/put for single/plural
+      if (verb === 'head') return;
+      if (verb === 'post' && !plural) return;
+      if (verb === 'put' && plural) return;
+
+      // Use the full word
+      if (verb === 'del') verb = 'delete';
+
+      operation.httpMethod = verb.toUpperCase();
+
+      if (subPath) {
+			if (plural) {
+				operation.nickname = verb + titlePlural + 'By' + model.singular();
+			} else {
+				operation.nickname = verb + titleSingular + 'ByIdBy' + model.singular();
+			}
+		} else {
+			if (plural) {
+				operation.nickname = verb + titlePlural;
+			} else {
+				operation.nickname = verb + titleSingular + 'ById';
+			}
+		}
+
+      operation.responseClass = titleSingular; // TODO sometimes an array!
+
+      if (plural) operation.summary = capitalize(verb) + ' some ' + model.plural();
+      else operation.summary = capitalize(verb) + ' a ' + model.singular() + ' by its unique ID';
+
+      operation.parameters = generateParameters(verb, plural, subPath);
+      operation.errorResponses = generateErrorResponses(plural, subPath);
+
+      operations.push(operation);
+    });
+
+    return operations;
+  }
+
+	  // __Build the Definition__
+  controller.generateSwagger = function () {
+		controller.swagger = { apis: [], models: {} };
+
+		controller.swagger.addPath = function(subcontrollers) {
+			subcontrollers.forEach(function(subcontroller){
+				var model = subcontroller.model();
+				controller.swagger.apis.push({
+					path: '/' + controller.model().plural() + "/{" + controller.model().singular() + "Id}/" + model.plural(),
+					description: "Operations about " + model.plural() + " of a " + controller.model().singular(),
+					operations: generateOperations(subcontroller, true, true)
+				});
+				controller.swagger.apis.push({
+					path: '/' + controller.model().plural() + "/{" + controller.model().singular() + "Id}/" + model.plural() + "/{Id}",
+					description: "Operations about " + model.plural() + " of a " + controller.model().singular(),
+					operations: generateOperations(subcontroller, false, true)
+				});
+			});
+		};	 
+
+		controller.finalize = function () {
+			var modelName = capitalize(controller.model().singular());
+			//
+			// Model
+			controller.swagger.models[modelName] = generateModelDefinition();
+
+			// Instance route
+			controller.swagger.apis.unshift({
+				path: '/' + controller.model().plural() + '/{id}',
+				description: 'Operations about a given ' + controller.model().singular(),
+				operations: generateOperations(controller, false)
+			});
+
+			// Collection route
+			controller.swagger.apis.unshift({
+				path: '/' + controller.model().plural(),
+				description: 'Operations about ' + controller.model().plural(),
+				operations: generateOperations(controller, true)
+			});
+			
+			return controller;
+		};
+
+		return controller;
+	};
+
+  return controller.generateSwagger();
+};
